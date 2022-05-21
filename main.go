@@ -43,8 +43,6 @@ func main() {
 		cmd.Initialize()
 	case "build":
 		cmd.Build()
-	case "install":
-		cmd.Install()
 	case "run":
 		cmd.Run()
 	default:

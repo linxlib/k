@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gogf/gf/os/gfile"
+	"github.com/linxlib/k/utils"
+	"github.com/linxlib/kapi"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var (
@@ -17,70 +19,85 @@ var (
    system = "windows,linux" # 系统
    path = "./bin" # 输出目录
 `
-	configFileContent = `# mysql 数据库配置
-#[db]
-#   enable = false 
-#   mysql = "root:root@tcp(127.0.0.1:3306)/test?charset=utf8"
 
-# redis 配置
-#[redis]
-#   enable = false
-#   address = "127.0.0.1:6379"
-#   password = ""
-#   db = 1
-
-[server]
-    debug = true
-    needDoc=true
-    docName="KApi"
-    docDesc="KApi Swagger Doc"
-    port=2021
-    openDocInBrowser=false
-    docDomain=""
-    docVer="v1"
-    redirectToDocWhenAccessRoot=true
-    apiBasePath="/"
-    staticDirs=["static"]
-    [server.cors]
-        allowHeaders = ["Origin","Content-Length","Content-Type","Authorization","x-requested-with"]
-
-`
 	mainContent = `package main
 
 import (
-	"gitee.com/kirile/kapi"
+	"github.com/linxlib/kapi"
 )
 
 func main() {
 	k := kapi.New(func(option *kapi.Option) {
-		//option.SetDocDomain("")
+
 	})
 	//k.RegisterRouter(new(api.CategoryController))
 
 	k.Run()
 }
 `
+	dockerFileContent = `
+FROM golang:1.18 as build
+MAINTAINER "yourname <youremail>"
+
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+	GOPROXY="https://goproxy.cn" \
+	GOPRIVATE="gitee.com"
+
+RUN mkdir /src
+RUN go install github.com/linxlib/k@latest
+WORKDIR /src
+
+COPY . .
+RUN go mod tidy
+RUN k build
+
+FROM ubuntu as prod
+RUN mkdir /app
+WORKDIR /app
+RUN export DEBIAN_FRONTEND=noninteractive  \
+    && apt-get update \
+    && apt-get install -y tzdata \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && apt-get -qq install -y --no-install-recommends ca-certificates curl \
+    && dpkg-reconfigure --frontend noninteractive tzdata
+COPY --from=build /src/bin/1.0.0/linux_amd64/<appname> .
+COPY --from=build /src/bin/1.0.0/linux_amd64/gen.gob .
+# COPY --from=build /src/bin/1.0.0/linux_amd64/config.toml  .
+COPY --from=build /src/bin/1.0.0/linux_amd64/swagger.json .
+RUN ln -fs /app/<appname> /usr/bin/<appname>
+RUN apt-get clean
+EXPOSE 1509
+
+CMD ["<appname>"]
+
+
+
+`
 )
 
 func Initialize() {
 	//TODO: 写出默认的配置文件
-	if gfile.Exists("go.mod") {
+	if utils.Exists("go.mod") {
 		modName := GetMod("go.mod")
-		if !gfile.Exists("build.toml") {
+		if !utils.Exists("build.toml") {
 			r := fmt.Sprintf(buildFileContent, modName)
 			ioutil.WriteFile("build.toml", []byte(r), os.ModePerm)
 			_log.Println("写出build.toml")
 		}
-		if !gfile.Exists("config.toml") {
+		if !utils.Exists("config.toml") {
 			//r := fmt.Sprintf(configFileContent,modName)
-			ioutil.WriteFile("config.toml", []byte(configFileContent), os.ModePerm)
+			ioutil.WriteFile("config.toml", kapi.GetEmptyConfig(), os.ModePerm)
+
 			_log.Println("写出config.toml")
 		}
-		if !gfile.Exists("api") {
+		if !utils.Exists("api") {
 			_log.Println("创建api目录")
-			gfile.Mkdir("api")
+			utils.Mkdir("api")
 		}
-		if !gfile.Exists("main.go") {
+		if !utils.Exists("main.go") {
 			//r := fmt.Sprintf(mainContent, modName, modName)
 			ioutil.WriteFile("main.go", []byte(mainContent), os.ModePerm)
 			_log.Println("写出main.go")
@@ -97,6 +114,11 @@ func Initialize() {
 			}
 
 			_log.Println(string(output))
+		}
+		if !utils.Exists("Dockerfile") {
+			a := strings.ReplaceAll(dockerFileContent, "<appname>", modName)
+			ioutil.WriteFile("Dockerfile", []byte(a), os.ModePerm)
+			_log.Println("写出Dockerfile")
 		}
 	} else {
 		_log.Println("go.mod不存在")

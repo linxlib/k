@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"github.com/gogf/gf/frame/g"
 	"github.com/gogf/gf/os/gcmd"
-	"github.com/gogf/gf/os/genv"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/os/gproc"
-	"github.com/gogf/gf/text/gregex"
-	"github.com/gogf/gf/text/gstr"
+	"github.com/linxlib/k/utils"
 	"os"
 	"regexp"
 	"runtime"
@@ -84,7 +82,7 @@ func Build() {
 	file := parser.GetArg(2)
 	if len(file) < 1 {
 		// Check and use the main.go file.
-		if gfile.Exists("main.go") {
+		if utils.Exists("main.go") {
 			file = "main.go"
 		} else {
 			_log.Fatal("编译文件不能为空")
@@ -101,8 +99,8 @@ func Build() {
 		archOption    = getOption(parser, "arch")
 		systemOption  = getOption(parser, "system")
 		tagsOption    = getOption(parser, "tags")
-		customSystems = gstr.SplitAndTrim(systemOption, ",")
-		customArches  = gstr.SplitAndTrim(archOption, ",")
+		customSystems = utils.SplitAndTrim(systemOption, ",")
+		customArches  = utils.SplitAndTrim(archOption, ",")
 	)
 
 	if len(version) > 0 {
@@ -114,7 +112,7 @@ func Build() {
 		platformMap = make(map[string]map[string]bool)
 	)
 	for _, line := range strings.Split(strings.TrimSpace(platforms), "\n") {
-		line = gstr.Trim(line)
+		line = utils.Trim(line)
 		line = spaceRegex.ReplaceAllString(line, " ")
 		var (
 			array  = strings.Split(line, " ")
@@ -127,7 +125,7 @@ func Build() {
 		platformMap[system][arch] = true
 	}
 	modName := ""
-	if gfile.Exists("./go.mod") {
+	if utils.Exists("./go.mod") {
 		modName = GetMod("go.mod")
 	}
 
@@ -136,16 +134,16 @@ func Build() {
 	// start building
 	_log.Print("开始编译...")
 
-	if gfile.Exists("config.toml") {
+	if utils.Exists("config.toml") {
 		_log.Print("生成swagger...")
 		if result, err := gproc.ShellExec("go run main.go -g"); err != nil {
-			_log.Printf("生成失败, error:\n%s\n", gstr.Trim(result))
+			_log.Printf("生成失败, error:\n%s\n", utils.Trim(result))
 		}
 	} else {
 		_log.Print("一般golang项目, 跳过swagger生成")
 	}
 
-	genv.Set("CGO_ENABLED", "0")
+	os.Setenv("CGO_ENABLED", "0")
 	var (
 		cmd  = ""
 		ext  = ""
@@ -154,11 +152,11 @@ func Build() {
 	for system, item := range platformMap {
 		cmd = ""
 		ext = ""
-		if len(customSystems) > 0 && customSystems[0] != "all" && !gstr.InArray(customSystems, system) {
+		if len(customSystems) > 0 && customSystems[0] != "all" && !utils.InArray(customSystems, system) {
 			continue
 		}
 		for arch, _ := range item {
-			if len(customArches) > 0 && customArches[0] != "all" && !gstr.InArray(customArches, arch) {
+			if len(customArches) > 0 && customArches[0] != "all" && !utils.InArray(customArches, arch) {
 				continue
 			}
 			if len(tagsOption) > 0 {
@@ -182,8 +180,8 @@ func Build() {
 				if system == "windows" {
 					ext = ".exe"
 				}
-				genv.Set("GOOS", system)
-				genv.Set("GOARCH", arch)
+				os.Setenv("GOOS", system)
+				os.Setenv("GOARCH", arch)
 				ldFlags = fmt.Sprintf(`-X gitee.com/kirile/kapi.VERSION=%s`, version) +
 					fmt.Sprintf(` -X gitee.com/kirile/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
 					fmt.Sprintf(` -X gitee.com/kirile/kapi.GOVERSION=%s`, runtime.Version()) +
@@ -197,27 +195,27 @@ func Build() {
 			}
 			_log.Debug(cmd)
 			// It's not necessary printing the complete command string.
-			cmdShow, _ := gregex.ReplaceString(`\s+(-ldflags ".+?")\s+`, " ", cmd)
+			cmdShow, _ := utils.ReplaceString(`\s+(-ldflags ".+?")\s+`, " ", cmd)
 			_log.Print(cmdShow)
 			if result, err := gproc.ShellExec(cmd); err != nil {
-				_log.Printf("编译失败, os:%s, arch:%s, error:\n%s\n", system, arch, gstr.Trim(result))
+				_log.Printf("编译失败, os:%s, arch:%s, error:\n%s\n", system, arch, utils.Trim(result))
 			}
-			if gfile.Exists("gen.gob") {
-				gfile.CopyFile("gen.gob", fmt.Sprintf(
+			if utils.Exists("gen.gob") {
+				utils.CopyFile("gen.gob", fmt.Sprintf(
 					`%s/%s/gen.gob`,
 					path, system+"_"+arch))
 				_log.Debug("拷贝gen.gob文件")
 			}
-			if gfile.Exists("swagger.json") {
-				gfile.CopyFile("swagger.json", fmt.Sprintf(
+			if utils.Exists("swagger.json") {
+				utils.CopyFile("swagger.json", fmt.Sprintf(
 					`%s/%s/swagger.json`,
 					path, system+"_"+arch))
 				_log.Debug("拷贝swagger.json文件")
 			}
-			if gfile.Exists("config.toml") && !gfile.Exists(fmt.Sprintf(
+			if utils.Exists("config.toml") && !utils.Exists(fmt.Sprintf(
 				`%s/%s/config.toml`,
 				path, system+"_"+arch)) {
-				gfile.CopyFile("config.toml", fmt.Sprintf(
+				utils.CopyFile("config.toml", fmt.Sprintf(
 					`%s/%s/config.toml`,
 					path, system+"_"+arch))
 				_log.Debug("拷贝config.toml文件")
