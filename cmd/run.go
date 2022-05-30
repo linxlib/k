@@ -49,7 +49,7 @@ func (app *App) Run() {
 	outputPath := gfile.Join("bin", gfile.Name(app.File))
 	if runtime.GOOS == "windows" {
 		outputPath += ".exe"
-		if gfile.Exists(outputPath) {
+		if utils.Exists(outputPath) {
 			renamePath = outputPath + "~"
 			if err := gfile.Rename(outputPath, renamePath); err != nil {
 				_log.Error(err)

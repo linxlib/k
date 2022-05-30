@@ -166,12 +166,12 @@ func Build() {
 				if runtime.GOOS == "windows" {
 					ext = ".exe"
 				}
-				ldFlags = fmt.Sprintf(`-X gitee.com/kirile/kapi.VERSION=%s`, "NO_VERSION") +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.GOVERSION=%s`, runtime.Version()) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.OS=%s`, runtime.GOOS) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.ARCH=%s`, runtime.GOARCH) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.PACKAGENAME=%s`, modName)
+				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, "NO_VERSION") +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, runtime.GOOS) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, runtime.GOARCH) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
 				// Single binary building, output the binary to current working folder.
 				output := "-o " + name + ext
 				cmd = fmt.Sprintf(`go build %s %s -ldflags "%s"  %s`, tags, output, ldFlags, file)
@@ -182,12 +182,12 @@ func Build() {
 				}
 				os.Setenv("GOOS", system)
 				os.Setenv("GOARCH", arch)
-				ldFlags = fmt.Sprintf(`-X gitee.com/kirile/kapi.VERSION=%s`, version) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.GOVERSION=%s`, runtime.Version()) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.OS=%s`, system) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.ARCH=%s`, arch) +
-					fmt.Sprintf(` -X gitee.com/kirile/kapi.PACKAGENAME=%s`, modName)
+				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, version) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, system) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, arch) +
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
 				cmd = fmt.Sprintf(
 					`go build %s -o %s/%s/%s%s -ldflags "%s" %s`,
 					tags, path, system+"_"+arch, name, ext, ldFlags, file,
