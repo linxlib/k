@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/linxlib/k/utils"
-	"github.com/linxlib/kapi"
+	"github.com/linxlib/k/utils/innerlog"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -76,6 +76,25 @@ CMD ["<appname>"]
 
 
 `
+	defaultConf = `
+[server]
+debug = true
+needDoc = true
+needReDoc = false
+needSwagger = true
+docName = "K-Api"
+docDesc = "K-Api"
+port = 2022
+openDocInBrowser = true
+docDomain = ""
+docVer = "v1"
+redirectToDocWhenAccessRoot = true
+apiBasePath = ""
+staticDirs = ["static"]
+enablePProf = false
+[server.cors]
+allowHeaders = ["Origin","Content-Length","Content-Type"]
+`
 )
 
 func Initialize() {
@@ -85,42 +104,42 @@ func Initialize() {
 		if !utils.Exists("build.toml") {
 			r := fmt.Sprintf(buildFileContent, modName)
 			ioutil.WriteFile("build.toml", []byte(r), os.ModePerm)
-			_log.Println("写出build.toml")
+			innerlog.Log.Println("写出build.toml")
 		}
 		if !utils.Exists("config.toml") {
 			//r := fmt.Sprintf(configFileContent,modName)
-			ioutil.WriteFile("config.toml", kapi.GetEmptyConfig(), os.ModePerm)
+			ioutil.WriteFile("config.toml", []byte(defaultConf), os.ModePerm)
 
-			_log.Println("写出config.toml")
+			innerlog.Log.Println("写出config.toml")
 		}
 		if !utils.Exists("api") {
-			_log.Println("创建api目录")
+			innerlog.Log.Println("创建api目录")
 			utils.Mkdir("api")
 		}
 		if !utils.Exists("main.go") {
 			//r := fmt.Sprintf(mainContent, modName, modName)
 			ioutil.WriteFile("main.go", []byte(mainContent), os.ModePerm)
-			_log.Println("写出main.go")
+			innerlog.Log.Println("写出main.go")
 			output, err := exec.Command("gofmt", "-l", "-w", "./").Output()
 			if err != nil {
-				_log.Error(err)
+				innerlog.Log.Error(err)
 				return
 			}
-			_log.Println(string(output))
+			innerlog.Log.Println(string(output))
 			output, err = exec.Command("go", "mod", "tidy").Output()
 			if err != nil {
-				_log.Error(err)
+				innerlog.Log.Error(err)
 				return
 			}
 
-			_log.Println(string(output))
+			innerlog.Log.Println(string(output))
 		}
 		if !utils.Exists("Dockerfile") {
 			a := strings.ReplaceAll(dockerFileContent, "<appname>", modName)
 			ioutil.WriteFile("Dockerfile", []byte(a), os.ModePerm)
-			_log.Println("写出Dockerfile")
+			innerlog.Log.Println("写出Dockerfile")
 		}
 	} else {
-		_log.Println("go.mod不存在")
+		innerlog.Log.Println("go.mod不存在")
 	}
 }

@@ -3,12 +3,11 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"github.com/gogf/gf/frame/g"
-	"github.com/gogf/gf/os/gcmd"
-	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/os/gproc"
+	"github.com/linxlib/conf"
 	"github.com/linxlib/k/utils"
+	"github.com/linxlib/k/utils/innerlog"
 	"os"
+	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
@@ -66,45 +65,27 @@ func GetMod(fileName string) string {
 	return ""
 }
 
+type BuildConfig struct {
+	K struct {
+		Name    string `conf:"name"`
+		Version string `conf:"version" default:"1.0.0"`
+		Arch    string `conf:"arch" default:"amd64"`
+		System  string `conf:"system" default:"windows,linux"`
+		Path    string `conf:"path" default:"./bin"`
+		Tags    string `conf:"tags"`
+	} `conf:"k"`
+}
+
 func Build() {
-	g.Config().SetFileName("build.toml")
-	parser, err := gcmd.Parse(g.MapStrBool{
-		"n,name":    true,
-		"v,version": true,
-		"a,arch":    true,
-		"s,system":  true,
-		"p,path":    true,
-		"t,tags":    true,
-	})
-	if err != nil {
-		_log.Fatal(err)
-	}
-	file := parser.GetArg(2)
-	if len(file) < 1 {
-		// Check and use the main.go file.
-		if utils.Exists("main.go") {
-			file = "main.go"
-		} else {
-			_log.Fatal("编译文件不能为空")
-		}
-	}
-	path := getOption(parser, "path", "./bin")
-	name := getOption(parser, "name", gfile.Name(file))
-	if len(name) < 1 || name == "*" {
-		_log.Fatal("名称不能为空")
-	}
+	bc := new(BuildConfig)
+	conf.Load(bc, conf.File("build.toml"))
+	systemOption := bc.K.System
+	archOption := bc.K.Arch
+	customSystems := utils.SplitAndTrim(systemOption, ",")
+	customArches := utils.SplitAndTrim(archOption, ",")
 
-	var (
-		version       = getOption(parser, "version")
-		archOption    = getOption(parser, "arch")
-		systemOption  = getOption(parser, "system")
-		tagsOption    = getOption(parser, "tags")
-		customSystems = utils.SplitAndTrim(systemOption, ",")
-		customArches  = utils.SplitAndTrim(archOption, ",")
-	)
-
-	if len(version) > 0 {
-		path += "/" + version
+	if len(bc.K.Version) > 0 {
+		bc.K.Path += "/" + bc.K.Version
 	}
 	// System and arch checks.
 	var (
@@ -132,25 +113,25 @@ func Build() {
 	ldFlags := ""
 
 	// start building
-	_log.Print("开始编译...")
+	innerlog.Log.Print("开始编译...")
 
 	if utils.Exists("config.toml") {
-		_log.Print("生成swagger...")
-		if result, err := gproc.ShellExec("go run main.go -g"); err != nil {
-			_log.Printf("生成失败, error:\n%s\n", utils.Trim(result))
+		innerlog.Log.Print("生成swagger...")
+		cmd := exec.Command("go", "run", "main.go", "-g")
+
+		if result, err := cmd.CombinedOutput(); err != nil {
+			innerlog.Log.Printf("生成失败, error:\n%s\n", string(result))
 		}
 	} else {
-		_log.Print("一般golang项目, 跳过swagger生成")
+		innerlog.Log.Print("一般golang项目, 跳过swagger生成")
 	}
 
 	os.Setenv("CGO_ENABLED", "0")
 	var (
-		cmd  = ""
 		ext  = ""
 		tags = ""
 	)
 	for system, item := range platformMap {
-		cmd = ""
 		ext = ""
 		if len(customSystems) > 0 && customSystems[0] != "all" && !utils.InArray(customSystems, system) {
 			continue
@@ -159,22 +140,20 @@ func Build() {
 			if len(customArches) > 0 && customArches[0] != "all" && !utils.InArray(customArches, arch) {
 				continue
 			}
-			if len(tagsOption) > 0 {
-				tags = "-tags=" + tagsOption
+			if len(bc.K.Tags) > 0 {
+				tags = "-tags=" + bc.K.Tags
 			}
 			if len(customSystems) == 0 && len(customArches) == 0 {
 				if runtime.GOOS == "windows" {
 					ext = ".exe"
 				}
-				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, "NO_VERSION") +
+				ldFlags = fmt.Sprintf(`"-X github.com/linxlib/kapi.VERSION=%s`, "NO_VERSION") +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, runtime.GOOS) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, runtime.GOARCH) +
-					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
-				// Single binary building, output the binary to current working folder.
-				output := "-o " + name + ext
-				cmd = fmt.Sprintf(`go build %s %s -ldflags "%s"  %s`, tags, output, ldFlags, file)
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s"`, modName)
+
 			} else {
 				// Cross-building, output the compiled binary to specified path.
 				if system == "windows" {
@@ -182,43 +161,52 @@ func Build() {
 				}
 				os.Setenv("GOOS", system)
 				os.Setenv("GOARCH", arch)
-				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, version) +
+				ldFlags = fmt.Sprintf(`"-X github.com/linxlib/kapi.VERSION=%s`, bc.K.Version) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, system) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, arch) +
-					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
-				cmd = fmt.Sprintf(
-					`go build %s -o %s/%s/%s%s -ldflags "%s" %s`,
-					tags, path, system+"_"+arch, name, ext, ldFlags, file,
-				)
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s"`, modName)
+
 			}
-			_log.Debug(cmd)
-			// It's not necessary printing the complete command string.
-			cmdShow, _ := utils.ReplaceString(`\s+(-ldflags ".+?")\s+`, " ", cmd)
-			_log.Print(cmdShow)
-			if result, err := gproc.ShellExec(cmd); err != nil {
-				_log.Printf("编译失败, os:%s, arch:%s, error:\n%s\n", system, arch, utils.Trim(result))
+			cmds := []string{
+				"go",
+				"build",
+				"-o",
+				bc.K.Path + "/" + system + "_" + arch + "/" + bc.K.Name + ext,
+				"-ldflags",
+				ldFlags,
+			}
+			if tags != "" {
+				cmds = append(cmds, tags)
+			}
+			cmds = append(cmds, "main.go")
+
+			shell := exec.Command(cmds[0], cmds[1:]...)
+			//innerlog.Log.Println(shell.String())
+			if result, err := shell.CombinedOutput(); err != nil {
+				innerlog.Log.Errorf("编译失败, os:%s, arch:%s, error:\n%s\n", system, arch, string(result))
+				continue
 			}
 			if utils.Exists("gen.gob") {
 				utils.CopyFile("gen.gob", fmt.Sprintf(
 					`%s/%s/gen.gob`,
-					path, system+"_"+arch))
-				_log.Debug("拷贝gen.gob文件")
+					bc.K.Path, system+"_"+arch))
+				innerlog.Log.Debug("拷贝gen.gob文件")
 			}
 			if utils.Exists("swagger.json") {
 				utils.CopyFile("swagger.json", fmt.Sprintf(
 					`%s/%s/swagger.json`,
-					path, system+"_"+arch))
-				_log.Debug("拷贝swagger.json文件")
+					bc.K.Path, system+"_"+arch))
+				innerlog.Log.Debug("拷贝swagger.json文件")
 			}
 			if utils.Exists("config.toml") && !utils.Exists(fmt.Sprintf(
 				`%s/%s/config.toml`,
-				path, system+"_"+arch)) {
+				bc.K.Path, system+"_"+arch)) {
 				utils.CopyFile("config.toml", fmt.Sprintf(
 					`%s/%s/config.toml`,
-					path, system+"_"+arch))
-				_log.Debug("拷贝config.toml文件")
+					bc.K.Path, system+"_"+arch))
+				innerlog.Log.Debug("拷贝config.toml文件")
 			}
 			// single binary building.
 			if len(customSystems) == 0 && len(customArches) == 0 {
@@ -227,21 +215,6 @@ func Build() {
 		}
 	}
 buildDone:
-	_log.Print("完成!")
+	innerlog.Log.Print("完成!")
 
-}
-
-const nodeNameInConfigFile = "k"
-
-// getOption retrieves option value from parser and configuration file.
-// It returns the default value specified by parameter `value` is no value found.
-func getOption(parser *gcmd.Parser, name string, value ...string) (result string) {
-	result = parser.GetOpt(name)
-	if result == "" && g.Config().Available() {
-		result = g.Config().GetString(nodeNameInConfigFile + "." + name)
-	}
-	if result == "" && len(value) > 0 {
-		result = value[0]
-	}
-	return
 }

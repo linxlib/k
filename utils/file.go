@@ -4,6 +4,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 var DefaultPermCopy = os.FileMode(0777)
@@ -13,6 +15,25 @@ func Exists(path string) bool {
 		return true
 	}
 	return false
+}
+
+func RealPath(path string) string {
+	p, err := filepath.Abs(path)
+	if err != nil {
+		return ""
+	}
+	if !Exists(p) {
+		return ""
+	}
+	return p
+}
+
+func Name(path string) string {
+	base := filepath.Base(path)
+	if i := strings.LastIndexByte(base, '.'); i != -1 {
+		return base[:i]
+	}
+	return base
 }
 
 // IsFile checks whether given <path> a file, which means it's not a directory.
@@ -74,4 +95,16 @@ func Mkdir(path string) error {
 		return err
 	}
 	return nil
+}
+
+func Ext(path string) string {
+	ext := filepath.Ext(path)
+	if p := strings.IndexByte(ext, '?'); p != -1 {
+		ext = ext[0:p]
+	}
+	return ext
+}
+
+func ExtName(path string) string {
+	return strings.TrimLeft(Ext(path), ".")
 }
