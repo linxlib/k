@@ -8,7 +8,7 @@ import (
 var regexMu = sync.RWMutex{}
 var regexMap = make(map[string]*regexp.Regexp)
 
-// ReplaceString replace all matched <pattern> in bytes <src> with bytes <replace>.
+// Replace do replace all matched <pattern> in bytes <src> with bytes <replace>.
 func Replace(pattern string, replace, src []byte) ([]byte, error) {
 	if r, err := getRegexp(pattern); err == nil {
 		return r.ReplaceAll(src, replace), nil

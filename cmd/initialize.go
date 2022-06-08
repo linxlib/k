@@ -115,6 +115,13 @@ func Initialize() {
 		if !utils.Exists("api") {
 			innerlog.Log.Println("创建api目录")
 			utils.Mkdir("api")
+			utils.Mkdir("api/controller")
+			utils.Mkdir("api/service")
+			utils.Mkdir("api/model")
+		}
+		if !utils.Exists("pkg") {
+			innerlog.Log.Println("创建pkg目录")
+			utils.Mkdir("pkg")
 		}
 		if !utils.Exists("main.go") {
 			//r := fmt.Sprintf(mainContent, modName, modName)
