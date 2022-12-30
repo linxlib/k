@@ -101,16 +101,16 @@ func Initialize() {
 	//TODO: 写出默认的配置文件
 	if utils.Exists("go.mod") {
 		modName := GetMod("go.mod")
-		if !utils.Exists("build.toml") {
+		if !utils.Exists("config/build.toml") {
 			r := fmt.Sprintf(buildFileContent, modName)
-			ioutil.WriteFile("build.toml", []byte(r), os.ModePerm)
-			innerlog.Log.Println("写出build.toml")
+			ioutil.WriteFile("config/build.toml", []byte(r), os.ModePerm)
+			innerlog.Log.Println("写出config/build.toml")
 		}
-		if !utils.Exists("config.toml") {
+		if !utils.Exists("config/config.toml") {
 			//r := fmt.Sprintf(configFileContent,modName)
-			ioutil.WriteFile("config.toml", []byte(defaultConf), os.ModePerm)
+			ioutil.WriteFile("config/config.toml", []byte(defaultConf), os.ModePerm)
 
-			innerlog.Log.Println("写出config.toml")
+			innerlog.Log.Println("写出config/config.toml")
 		}
 		if !utils.Exists("api") {
 			innerlog.Log.Println("创建api目录")
