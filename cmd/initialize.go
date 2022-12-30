@@ -80,17 +80,17 @@ CMD ["<appname>"]
 [server]
 debug = true
 needDoc = true
-needReDoc = false
-needSwagger = true
+needReDoc = true
+needSwagger = false
 docName = "K-Api"
 docDesc = "K-Api"
-port = 2022
-openDocInBrowser = true
+port = 2023
+openDocInBrowser = false
 docDomain = ""
 docVer = "v1"
 redirectToDocWhenAccessRoot = true
 apiBasePath = ""
-staticDirs = ["static"]
+staticDirs = ["static=static"]
 enablePProf = false
 [server.cors]
 allowHeaders = ["Origin","Content-Length","Content-Type"]
