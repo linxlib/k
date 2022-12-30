@@ -1,6 +1,6 @@
 module github.com/linxlib/k
 
-go 1.16
+go 1.19
 
 require (
 	github.com/kr/pretty v0.3.0 // indirect

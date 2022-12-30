@@ -147,12 +147,12 @@ func Build() {
 				if runtime.GOOS == "windows" {
 					ext = ".exe"
 				}
-				ldFlags = fmt.Sprintf(`"-X github.com/linxlib/kapi.VERSION=%s`, "NO_VERSION") +
+				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, "NO_VERSION") +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, runtime.GOOS) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, runtime.GOARCH) +
-					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s"`, modName)
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
 
 			} else {
 				// Cross-building, output the compiled binary to specified path.
@@ -161,12 +161,12 @@ func Build() {
 				}
 				os.Setenv("GOOS", system)
 				os.Setenv("GOARCH", arch)
-				ldFlags = fmt.Sprintf(`"-X github.com/linxlib/kapi.VERSION=%s`, bc.K.Version) +
+				ldFlags = fmt.Sprintf(`-X github.com/linxlib/kapi.VERSION=%s`, bc.K.Version) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.BUILDTIME=%s`, time.Now().Format("2006-01-02T15:04:01")) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.GOVERSION=%s`, runtime.Version()) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.OS=%s`, system) +
 					fmt.Sprintf(` -X github.com/linxlib/kapi.ARCH=%s`, arch) +
-					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s"`, modName)
+					fmt.Sprintf(` -X github.com/linxlib/kapi.PACKAGENAME=%s`, modName)
 
 			}
 			cmds := []string{
