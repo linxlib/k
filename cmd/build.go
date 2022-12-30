@@ -78,7 +78,7 @@ type BuildConfig struct {
 
 func Build() {
 	bc := new(BuildConfig)
-	conf.Load(bc, conf.File("build.toml"))
+	conf.Load(bc, conf.File("build.toml"), conf.File("config/build.toml"))
 	systemOption := bc.K.System
 	archOption := bc.K.Arch
 	customSystems := utils.SplitAndTrim(systemOption, ",")
@@ -115,7 +115,7 @@ func Build() {
 	// start building
 	innerlog.Log.Print("开始编译...")
 
-	if utils.Exists("config.toml") {
+	if utils.Exists("config.toml") || utils.Exists("config/config.toml") {
 		innerlog.Log.Print("生成swagger...")
 		cmd := exec.Command("go", "run", "main.go", "-g")
 
@@ -204,6 +204,14 @@ func Build() {
 				`%s/%s/config.toml`,
 				bc.K.Path, system+"_"+arch)) {
 				utils.CopyFile("config.toml", fmt.Sprintf(
+					`%s/%s/config.toml`,
+					bc.K.Path, system+"_"+arch))
+				innerlog.Log.Debug("拷贝config.toml文件")
+			}
+			if !utils.Exists("config.toml") && utils.Exists("config/config.toml") && !utils.Exists(fmt.Sprintf(
+				`%s/%s/config.toml`,
+				bc.K.Path, system+"_"+arch)) {
+				utils.CopyFile("config/config.toml", fmt.Sprintf(
 					`%s/%s/config.toml`,
 					bc.K.Path, system+"_"+arch))
 				innerlog.Log.Debug("拷贝config.toml文件")
