@@ -1,5 +1,7 @@
 # KAPI Cli
 
+deprecated, use https://github.com/linxlib/kapi/tree/main/cmd/k instead
+
 ## 安装
 
 ```shell
